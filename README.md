@@ -1,1 +1,1 @@
-# potential-field
+# artificial-potential-field
