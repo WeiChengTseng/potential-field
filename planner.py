@@ -6,6 +6,7 @@ from typing import List, Any
 
 import numpy as np
 import pygame
+import pdb
 
 
 class PotentialField:
@@ -42,6 +43,10 @@ class PotentialField:
         self.virtual, self.fcf = virtual, 5
         self.map_surf = map_surf
 
+        # NOTE:
+        # this parameter determine the threshold of repulsive field
+        self._r_scale = 1.5
+
     def start(self):
         self.goal_field = self.attract_goal(self.goal_radius)
         self.field = self.goal_field
@@ -49,7 +54,9 @@ class PotentialField:
         for obs in self.obstacles:
             if not obs in self.obstacle_field.keys():
                 self.obstacle_field[obs] = self.repel_obstacle(obs)
-            self.field += self.obstacle_field[obs]
+
+            # NOTE: you can try to tune the weight
+            self.field += self.obstacle_field[obs] * 0.4
 
         self.clamp_field(25)
         self.make_path()
@@ -64,97 +71,115 @@ class PotentialField:
         meshgrid_x = target_pos[0] - meshgrid[0]
         meshgrid_y = target_pos[1] - meshgrid[1]
         field = np.zeros((self.mapw, self.maph, 2))
-        field[:, :, 0] = meshgrid_x
-        field[:, :, 1] = meshgrid_y
+        field[:, :, 0], field[:, :, 1] = meshgrid_x, meshgrid_y
 
-        # TODO
+        # TODO ------------------------------------------------------
+        # using `field` calculate the distance to the goal location
+        dist = np.zeros((self.mapw, self.maph))
 
-        magnitude_field = np.sqrt(
-            (field[:, :, 0] ** 2 + field[:, :, 1] ** 2) * 2
-        )
-        magnitude_field = np.clip(magnitude_field, 0.0000001, math.inf)
+        raise NotImplementedError
 
-        #
+        # dist = np.sqrt((field[:, :, 0] ** 2 + field[:, :, 1] ** 2) * 2)
+        # dist = np.clip(dist, 0.0000001, math.inf)
+        # -----------------------------------------------------------
 
         # Create normal field
-        normal_field = np.zeros((self.mapw, self.maph, 2))
-        normal_field[:, :, 0] = field[:, :, 0] / magnitude_field
-        normal_field[:, :, 1] = field[:, :, 1] / magnitude_field
+        force_dir = np.zeros((self.mapw, self.maph, 2))
+        force_dir[:, :, 0] = field[:, :, 0] / dist
+        force_dir[:, :, 1] = field[:, :, 1] / dist
         # Adjust magnitude field to fit radius parameter
-        magnitude_field[np.where(magnitude_field <= self.goal_radius)] = cvtRange(
-            magnitude_field[np.where(magnitude_field <= self.goal_radius)],
+        dist[np.where(dist <= self.goal_radius)] = cvtRange(
+            dist[np.where(dist <= self.goal_radius)],
             0,
             radius,
             self.max_vel,
             self.min_vel,
         )
 
-        magnitude_field[np.where(magnitude_field > radius)] = 15
-        # Create final field
-        field[:, :, 0] = normal_field[:, :, 0] * magnitude_field
-        field[:, :, 1] = normal_field[:, :, 1] * magnitude_field
+        dist[np.where(dist > radius)] = 15
+        # Create final force
+        field[:, :, 0] = force_dir[:, :, 0] * dist
+        field[:, :, 1] = force_dir[:, :, 1] * dist
         return field
 
     def repel_obstacle(self, obs):
         repulse_pos = (obs.x, obs.y)
-        # Create coordinate array to find distance
+        # create coordinate array to find distance
         x = np.linspace(0, self.mapw - 1, self.mapw)
         y = np.linspace(0, self.maph - 1, self.maph)
         meshgrid = np.meshgrid(x, y, sparse=False, indexing="ij")
 
-        # Find distance from target to coordinate
+        # find distance from target to coordinate
         meshgrid_x = meshgrid[0] - repulse_pos[0]
         meshgrid_y = meshgrid[1] - repulse_pos[1]
 
-        # Create field out of these distance calculations
-        field = np.zeros((self.mapw, self.maph, 2))
-        field[:, :, 0] = meshgrid_x
-        field[:, :, 1] = meshgrid_y
+        # create field out of these distance calculations
+        displacement = np.zeros((self.mapw, self.maph, 2))
+        displacement[:, :, 0], displacement[:, :, 1] = meshgrid_x, meshgrid_y
 
-        # Create magnitude field representing these distances
-        magnitude_field = np.sqrt(field[:, :, 0] ** 2 + field[:, :, 1] ** 2)
-        magnitude_field = np.clip(magnitude_field, 0.0000001, math.inf)
+        # NOTE:
+        # this parameter determine the threshold of repulsive field
+        r = obs.rad * self._r_scale
 
-        # Create normal field
-        normalField = np.zeros((self.mapw, self.maph, 2))
-        normalField[:, :, 0] = field[:, :, 0] / magnitude_field
-        normalField[:, :, 1] = field[:, :, 1] / magnitude_field
+        # TODO ------------------------------------------------------
+        # using `displacement` to calculate the distance to the obstacle
+        dist = np.zeros((self.mapw, self.maph))
 
-        # Adjust magnitude field to fit radius parameter
-        filter_ = np.where(magnitude_field <= obs.rad * 2.5)
+        raise NotImplementedError
+
+        # dist = np.sqrt(displacement[:, :, 0] ** 2 + displacement[:, :, 1] ** 2)
+        # dist = np.clip(dist, 0.0000001, math.inf)
+        # -----------------------------------------------------------
+
+        # create the normal displacement that record the direction of the force
+        force_dir = np.zeros((self.mapw, self.maph, 2))
+        force_dir[:, :, 0] = displacement[:, :, 0] / dist
+        force_dir[:, :, 1] = displacement[:, :, 1] / dist
+
+        # create filter
+        filter_ = np.where(dist <= r)
+
+        # TODO ------------------------------------------------------
+        # calculate the force magnitude
+        force_mag = np.zeros((self.mapw, self.maph))
+        raise NotImplementedError
+
+        # force_mag = (1 / dist - 1 / r) / dist /dist
+        # -----------------------------------------------------------
+        
         if len(filter_) != 0:
-            magnitude_field[filter_] = cvtRange(
-                magnitude_field[filter_],
-                0,
-                obs.rad * 2.5,
-                self.max_vel,
-                self.min_vel,
+            force_mag[filter_] = cvtRange(
+                force_mag[filter_], 0, r, self.max_vel, self.min_vel
             )
-        filter_ = np.where(magnitude_field > obs.rad * 2.5)
-        if len(filter_) != 0:
-            magnitude_field[filter_] = 0
 
-        # Create final field
-        field[:, :, 0] = normalField[:, :, 0] * magnitude_field
-        field[:, :, 1] = normalField[:, :, 1] * magnitude_field
-        return field
+        filter_ = np.where(force_mag > r)
+        if len(filter_) != 0:
+            force_mag[filter_] = 0
+
+        # create final field
+        force = np.zeros((self.mapw, self.maph, 2))
+        force[:, :, 0] = force_dir[:, :, 0] * force_mag
+        force[:, :, 1] = force_dir[:, :, 1] * force_mag
+        return force
 
     def draw(self, surface, stride=(25, 25)):
         # Iterate through the field with proper strides
-        bufferX = math.floor(stride[0] / 2.0)
-        bufferY = math.floor(stride[1] / 2.0)
-        for fieldX in range(bufferX, self.mapw - bufferX, stride[0]):
-            for fieldY in range(bufferY, self.maph - bufferY, stride[1]):
+        buffer_x = math.floor(stride[0] / 2.0)
+        buffer_Y = math.floor(stride[1] / 2.0)
+        for fieldX in range(buffer_x, self.mapw - buffer_x, stride[0]):
+            for fieldY in range(buffer_Y, self.maph - buffer_Y, stride[1]):
                 # Grab the field vector for the cell
                 fieldVector = self.field[fieldX, fieldY]
+
                 # Determine the x and y coordinate for the origin of the
                 # potential line segment.
                 startPixelX, startPixelY = fieldX, fieldY
-                # startPixelY = fieldY
+
                 # Determine the x and y coordinate for the end point of the
                 # potential line segment.
                 endPixelX = math.floor(startPixelX + fieldVector[0])
                 endPixelY = math.floor(startPixelY + fieldVector[1])
+
                 # Draw the vector to the pygame surface
                 draw_arrow(
                     surface, (startPixelX, startPixelY), (endPixelX, endPixelY)

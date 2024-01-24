@@ -3,7 +3,12 @@ import threading
 
 import pygame, random, pygame_gui
 from pygame.locals import *
-from planner import (
+# from planner import (
+#     Color,
+#     PotentialField,
+#     CircularObstacle,
+# )
+from planner_sol import (
     Color,
     PotentialField,
     CircularObstacle,

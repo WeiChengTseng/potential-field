@@ -9,6 +9,11 @@ pip install -r requirement.txt
 ## To Do
 Please navigate to `planner.py` and search for `TODO`.
 
+Once you finish your implementation, please run 
+```
+python3 main.py
+```
+
 ## Demo
 
 ![alt text](assets/demo.gif "Title")
