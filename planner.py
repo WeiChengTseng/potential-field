@@ -68,11 +68,11 @@ class PotentialField:
 
         meshgrid_x = target_pos[0] - meshgrid[0]
         meshgrid_y = target_pos[1] - meshgrid[1]
-        field = np.zeros((self.mapw, self.maph, 2))
-        field[:, :, 0], field[:, :, 1] = meshgrid_x, meshgrid_y
+        displacement = np.zeros((self.mapw, self.maph, 2))
+        displacement[:, :, 0], displacement[:, :, 1] = meshgrid_x, meshgrid_y
 
         # TODO ------------------------------------------------------
-        # using `field` calculate the distance to the goal location
+        # using `displacement` calculate the distance to the goal location
         dist = np.zeros((self.mapw, self.maph))
 
         raise NotImplementedError
@@ -80,12 +80,12 @@ class PotentialField:
         # -----------------------------------------------------------
         dist = np.clip(dist, 0.0000001, math.inf)
 
-        # Create normal field
+        # Create normal displacement
         force_dir = np.zeros((self.mapw, self.maph, 2))
-        force_dir[:, :, 0] = field[:, :, 0] / dist
-        force_dir[:, :, 1] = field[:, :, 1] / dist
+        force_dir[:, :, 0] = displacement[:, :, 0] / dist
+        force_dir[:, :, 1] = displacement[:, :, 1] / dist
 
-        # adjust magnitude field to fit radius parameter
+        # adjust magnitude displacement to fit radius parameter
         dist[np.where(dist <= self.goal_radius)] = cvtRange(
             dist[np.where(dist <= self.goal_radius)],
             0,
@@ -96,9 +96,10 @@ class PotentialField:
 
         dist[np.where(dist > radius)] = 15
         # Create final force
-        field[:, :, 0] = force_dir[:, :, 0] * dist
-        field[:, :, 1] = force_dir[:, :, 1] * dist
-        return field
+        force = np.zeros((self.mapw, self.maph, 2))
+        force[:, :, 0] = force_dir[:, :, 0] * dist
+        force[:, :, 1] = force_dir[:, :, 1] * dist
+        return force
 
     def repel_obstacle(self, obs):
         repulse_pos = (obs.x, obs.y)
