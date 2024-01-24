@@ -43,8 +43,6 @@ class PotentialField:
         self.virtual, self.fcf = virtual, 5
         self.map_surf = map_surf
 
-        # NOTE:
-        # this parameter determine the threshold of repulsive field
         self._r_scale = 1.5
 
     def start(self):
@@ -79,15 +77,15 @@ class PotentialField:
 
         raise NotImplementedError
 
-        # dist = np.sqrt((field[:, :, 0] ** 2 + field[:, :, 1] ** 2) * 2)
-        # dist = np.clip(dist, 0.0000001, math.inf)
         # -----------------------------------------------------------
+        dist = np.clip(dist, 0.0000001, math.inf)
 
         # Create normal field
         force_dir = np.zeros((self.mapw, self.maph, 2))
         force_dir[:, :, 0] = field[:, :, 0] / dist
         force_dir[:, :, 1] = field[:, :, 1] / dist
-        # Adjust magnitude field to fit radius parameter
+
+        # adjust magnitude field to fit radius parameter
         dist[np.where(dist <= self.goal_radius)] = cvtRange(
             dist[np.where(dist <= self.goal_radius)],
             0,
@@ -126,10 +124,8 @@ class PotentialField:
         dist = np.zeros((self.mapw, self.maph))
 
         raise NotImplementedError
-
-        # dist = np.sqrt(displacement[:, :, 0] ** 2 + displacement[:, :, 1] ** 2)
-        # dist = np.clip(dist, 0.0000001, math.inf)
         # -----------------------------------------------------------
+        dist = np.clip(dist, 0.0000001, math.inf)
 
         # create the normal displacement that record the direction of the force
         force_dir = np.zeros((self.mapw, self.maph, 2))
@@ -143,8 +139,6 @@ class PotentialField:
         # calculate the force magnitude
         force_mag = np.zeros((self.mapw, self.maph))
         raise NotImplementedError
-
-        # force_mag = (1 / dist - 1 / r) / dist /dist
         # -----------------------------------------------------------
         
         if len(filter_) != 0:
