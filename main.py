@@ -10,17 +10,11 @@ from planner import (
 )
 
 
-
-
-
 """
     map_pos -> Tuple(x,y)
     map_dim -> Tuple(w,h)
     obs_dim -> Tuple(maxw,maxh)
 """
-
-
-
 
 
 class App:
@@ -47,7 +41,7 @@ class App:
             0.122 * self.height
         )
 
-        self.state = State.PRM
+        # self.state = State.PRM
 
         self.optionp_pos = (int(0.76875 * self.width), int(0.95 * self.toolbarh))
         self.optionp_size = self.optionp_w, self.optionp_h = (
@@ -55,20 +49,16 @@ class App:
             self.height,
         )
 
-        # self.planners = ["Probabilistic Roadmap", "RRT", "Potential Field"]
         self.planners = ["Potential Field"]
-        # self.default_planner = "RRT"
         self.default_planner = "Potential Field"
-        # self.state = State.RRT
         self.state = State.PF
 
-        self.searches = ["Dijkstra", "A*", "Greedy Best First"]
-        self.default_search = "A*"
-        self.search = None
+        # self.searches = ["Dijkstra", "A*", "Greedy Best First"]
+        # self.default_search = "A*"
+        # self.search = None
 
         self.obstacles = []
-        self.obs_dim = (50, 50)
-        self.circle_obs_dim = 50
+        self.obs_dim, self.circle_obs_dim  = (50, 50), 50
         self._rect_start_pos = None
         self.num_obstacles = 20
 
@@ -79,14 +69,7 @@ class App:
         self.node_radius = 5
 
         self.transition_pose = None
-
         self.path = []
-
-        # PRM OPTIONS
-        # self.prm_options = {"sample_size": 800, "neighbours": 10}
-
-        # RRT OPTIONS
-        # self.rrt_options = {"bias": 0.1}
 
         self.pf_options = {"virtual": False}
 
@@ -104,8 +87,6 @@ class App:
         self.obstacle_textbox = None
         self.obstacle_slider = None
         self.visualize_button = None
-        # self.rrt_ui_options = None
-        # self.prm_ui_options = None
         self.pf_ui_options = None
         self.planner = None
         self.search = None
@@ -113,7 +94,7 @@ class App:
 
     def on_init(self):
         pygame.init()
-        pygame.display.set_caption("Local Planner Visualization Project")
+        pygame.display.set_caption("Artificial Potential Field Visualization")
         icon = pygame.image.load(r"assets/RVL-icon.png")
         pygame.display.set_icon(icon)
         self._display_surf = pygame.display.set_mode(
@@ -219,7 +200,6 @@ class App:
             container=self.option_ui_panel,
         )
 
-
         self.visualize_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 490, 250, 60),
             text="Simulate!",
@@ -255,7 +235,6 @@ class App:
         self.init_state()
 
     def init_state(self):
-
         self.obstacles = []
         self.planner = PotentialField(
             self.map_size,
@@ -312,6 +291,7 @@ class App:
                     self.start_pose = self.transition_pose
                     self.update_pose()
                 self.transition_pose = None
+
             elif self.flags["drag_goal"]:
                 self.flags["drag_goal"] = False
                 collision = False
@@ -357,9 +337,9 @@ class App:
                 if event.ui_element == self.toolbar_buttons["generate_obs"]:
                     self.generate_obstacles()
                 if event.ui_element == self.toolbar_buttons["reset_obs"]:
-                    self.resetObstacles()
+                    self.reset_obstacles()
                 if event.ui_element == self.visualize_button:
-                    self.simulateState()
+                    self.simulate_state()
                 if event.ui_element == self.pf_ui_options["virtual_button"]:
                     self.pf_options["virtual"] = not self.pf_options["virtual"]
                     self.pf_ui_options["virtual_textbox"].kill()
@@ -402,7 +382,7 @@ class App:
             rect.normalize()
             pygame.draw.rect(self.map, Color.BLUE, rect)
 
-        self.renderState()
+        self.render_state()
         self.manager.draw_ui(self._display_surf)
 
         pygame.display.update()
@@ -442,15 +422,6 @@ class App:
         else:
             self.toolbar_buttons["add_obs"].enable()
 
-
-    # def update_prm_samples(self):
-    #     self.planner.set_obstacles(self.obstacles)
-    #     self.search.path = []
-    #     self.t = threading.Thread(
-    #         target=self.planner.sample, args=(self.prm_options["sample_size"],)
-    #     )
-    #     self.t.start()
-
     def generate_obstacles(self):
         self.obstacles = generate_circle_obs(
             self.num_obstacles,
@@ -465,18 +436,8 @@ class App:
     def add_obstacle(self, rect):
         self.obstacles.append(rect)
         self.planner.set_obstacles(self.obstacles)
-        # if self.state == State.PRM:
-        #     # self.t = threading.Thread(
-        #     #     target=self.planner.sample, args=(self.prm_options["sample_size"],)
-        #     # )
-        #     # self.t.start()
-        #     pass
-        # elif self.state == State.RRT:
-        #     pass
-        # elif self.state == State.PF:
-        #     pass
 
-    def renderState(self):
+    def render_state(self):
         if self.state == State.PF:
             for obs in self.obstacles:
                 pygame.draw.circle(
@@ -492,7 +453,7 @@ class App:
                     width=0,
                 )
 
-    def simulateState(self):
+    def simulate_state(self):
         if self.state == State.PF:
             self.planner.updated = True
             if self.t is None or not self.t.is_alive():
@@ -517,10 +478,11 @@ class App:
                 self.t = threading.Thread(target=self.planner.start, daemon=True)
                 self.t.start()
 
-    def resetObstacles(self):
+    def reset_obstacles(self):
         self.planner.obstacles = []
         self.obstacles = []
         self.planner.path = []
+
 
 class State:
     PRM = 0
@@ -575,6 +537,7 @@ def generate_circle_obs(num_obstacles, map_pos, map_size, circle_obs_dim, goal_p
 
         obs.append(circle)
     return obs
+
 
 if __name__ == "__main__":
     theApp = App()
